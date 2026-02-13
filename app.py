@@ -265,7 +265,7 @@ if page == "📊 Portfolio Overview":
             template="plotly_white", height=400, showlegend=False,
             xaxis=dict(tickangle=-45),
         )
-        st.plotly_chart(fig_exp, use_container_width=True)
+        st.plotly_chart(fig_exp, width='stretch')
 
     with col_right:
         avg_freq = df["ClaimNb"].sum() / df["Exposure"].sum()
@@ -285,7 +285,7 @@ if page == "📊 Portfolio Overview":
             template="plotly_white", height=400, showlegend=False,
             xaxis=dict(tickangle=-45),
         )
-        st.plotly_chart(fig_freq, use_container_width=True)
+        st.plotly_chart(fig_freq, width='stretch')
 
     # --- Heatmap ---
     section_header("🔥 Risk Heatmap — Driver Age × Bonus-Malus")
@@ -310,7 +310,7 @@ if page == "📊 Portfolio Overview":
         xaxis=dict(tickangle=-45, dtick=1),
         yaxis=dict(dtick=1),
     )
-    st.plotly_chart(fig_heat, use_container_width=True)
+    st.plotly_chart(fig_heat, width='stretch')
 
     # --- BM Distribution ---
     section_header("📉 Bonus-Malus Distribution")
@@ -324,7 +324,7 @@ if page == "📊 Portfolio Overview":
             template="plotly_white", height=350,
             xaxis_title="Bonus-Malus", yaxis_title="Number of Policies",
         )
-        st.plotly_chart(fig_bm, use_container_width=True)
+        st.plotly_chart(fig_bm, width='stretch')
 
     with col_bm2:
         bm_freq = df.groupby("BonusMalus_bin", observed=True).agg(
@@ -339,7 +339,7 @@ if page == "📊 Portfolio Overview":
             xaxis_title="Bonus-Malus", yaxis_title="Frequency",
             xaxis=dict(tickangle=-45),
         )
-        st.plotly_chart(fig_bm_freq, use_container_width=True)
+        st.plotly_chart(fig_bm_freq, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -398,7 +398,7 @@ elif page == "🎯 GLM Pricing Model":
         fig_rel.update_layout(title="Relativities — Key Continuous Variables",
                                yaxis_title="Relativity (exp(β))",
                                template="plotly_white", height=400)
-        st.plotly_chart(fig_rel, use_container_width=True)
+        st.plotly_chart(fig_rel, width='stretch')
 
     # Area relativities
     area_coefs = coef_df[coef_df["Variable"].str.startswith("Area_")].copy()
@@ -416,7 +416,7 @@ elif page == "🎯 GLM Pricing Model":
                            title="Area Relativities (A = reference)")
         fig_area.add_hline(y=1, line_dash="dash", line_color="gray")
         fig_area.update_layout(template="plotly_white", height=350)
-        st.plotly_chart(fig_area, use_container_width=True)
+        st.plotly_chart(fig_area, width='stretch')
 
     with st.expander("📄 View Full GLM Frequency Coefficient Table"):
         display_df = coef_df[["Variable", "Coefficient", "Std Error", "P-value",
@@ -426,7 +426,7 @@ elif page == "🎯 GLM Pricing Model":
         display_df["P-value"] = display_df["P-value"].apply(
             lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
         display_df["Relativity"] = display_df["Relativity"].round(4)
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df, width='stretch', hide_index=True)
 
     # --- Severity Model (moved from Pure Premium page) ---
     section_header("📐 Severity Model — Gamma GLM")
@@ -465,7 +465,7 @@ elif page == "🎯 GLM Pricing Model":
                 yaxis_title="Relativity (exp(β))",
                 template="plotly_white", height=400
             )
-            st.plotly_chart(fig_sev_rel, use_container_width=True)
+            st.plotly_chart(fig_sev_rel, width='stretch')
 
         with st.expander("📄 View Full Severity GLM Coefficient Table"):
             sev_display = sev_coef_df.copy()
@@ -473,7 +473,7 @@ elif page == "🎯 GLM Pricing Model":
             sev_display["Relativity"] = sev_display["Relativity"].round(4)
             sev_display["P-value"] = sev_display["P-value"].apply(
                 lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
-            st.dataframe(sev_display, use_container_width=True, hide_index=True)
+            st.dataframe(sev_display, width='stretch', hide_index=True)
     else:
         st.info("Severity model could not be fitted (insufficient claims data). Using portfolio average severity.")
 
@@ -596,7 +596,7 @@ elif page == "🎯 GLM Pricing Model":
                 "✅ No overdispersion" if diagnostics.get('dean_pvalue', 1) > 0.05 else "⚠️ Overdispersion detected"
             ]
         })
-        st.dataframe(test_results, use_container_width=True, hide_index=True)
+        st.dataframe(test_results, width='stretch', hide_index=True)
         
         # Residual plots
         st.markdown("#### Residual Analysis")
@@ -611,7 +611,7 @@ elif page == "🎯 GLM Pricing Model":
                 fig_pearson.add_vline(x=0, line_dash="dash", line_color="red")
                 fig_pearson.update_layout(template="plotly_white", height=350,
                                          xaxis_title="Pearson Residual", yaxis_title="Frequency")
-                st.plotly_chart(fig_pearson, use_container_width=True)
+                st.plotly_chart(fig_pearson, width='stretch')
         
         with res_col2:
             deviance_res = diagnostics.get('deviance_residuals', np.array([]))
@@ -622,7 +622,7 @@ elif page == "🎯 GLM Pricing Model":
                 fig_dev.add_vline(x=0, line_dash="dash", line_color="red")
                 fig_dev.update_layout(template="plotly_white", height=350,
                                     xaxis_title="Deviance Residual", yaxis_title="Frequency")
-                st.plotly_chart(fig_dev, use_container_width=True)
+                st.plotly_chart(fig_dev, width='stretch')
 
     # --- Pricing Table Export ---
     section_header("📋 Pricing Table Generator")
@@ -672,7 +672,7 @@ elif page == "🎯 GLM Pricing Model":
     pricing_display["Commercial Premium (€)"] = pricing_display["Commercial Premium (€)"].apply(lambda x: fmt_number(x, prefix="€", decimals=2))
     pricing_display["Relativity"] = pricing_display["Relativity"].round(3)
     
-    st.dataframe(pricing_display, use_container_width=True, hide_index=True)
+    st.dataframe(pricing_display, width='stretch', hide_index=True)
     
     # Export button
     csv_data = seg_pricing.to_csv(index=False).encode('utf-8')
@@ -772,7 +772,7 @@ elif page == "💰 Pure Premium":
     )
     # Ensure all x-axis labels are visible
     fig_decomp.update_xaxes(tickangle=-45)
-    st.plotly_chart(fig_decomp, use_container_width=True)
+    st.plotly_chart(fig_decomp, width='stretch')
 
     # --- Pure Premium Heatmap ---
     section_header("🔥 Pure Premium Heatmap — Driver Age × Bonus-Malus")
@@ -799,7 +799,7 @@ elif page == "💰 Pure Premium":
         xaxis=dict(tickangle=-45, dtick=1),
         yaxis=dict(dtick=1),
     )
-    st.plotly_chart(fig_pp_heat, use_container_width=True)
+    st.plotly_chart(fig_pp_heat, width='stretch')
 
     # --- Severity Distribution Analysis ---
     section_header("📊 Severity Distribution Analysis")
@@ -851,7 +851,7 @@ elif page == "💰 Pure Premium":
                 yaxis_title="Frequency",
                 template="plotly_white", height=400
             )
-            st.plotly_chart(fig_sev_hist, use_container_width=True)
+            st.plotly_chart(fig_sev_hist, width='stretch')
         
         with dist_col2:
             # Log scale histogram
@@ -870,7 +870,7 @@ elif page == "💰 Pure Premium":
                 yaxis_title="Frequency",
                 template="plotly_white", height=400
             )
-            st.plotly_chart(fig_sev_log, use_container_width=True)
+            st.plotly_chart(fig_sev_log, width='stretch')
         
         # Risk measures
         st.markdown("#### Risk Measures (VaR & TVaR)")
@@ -900,7 +900,7 @@ elif page == "💰 Pure Premium":
                 fmt_number(severity_analysis.get('p99.9', 0), prefix="€"),
             ]
         }
-        st.dataframe(pd.DataFrame(percentiles_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(percentiles_data), width='stretch', hide_index=True)
         
         # Extreme values analysis
         st.markdown("#### Extreme Values Analysis")
@@ -1011,7 +1011,7 @@ elif page == "🤖 GLM vs XGBoost":
     fig_lift.update_layout(template="plotly_white", height=420,
                             title_text="Ordered Lift: Do models correctly rank risk?")
     fig_lift.update_xaxes(tickangle=-45)
-    st.plotly_chart(fig_lift, use_container_width=True)
+    st.plotly_chart(fig_lift, width='stretch')
 
     # --- Double Lift ---
     section_header("⚖️ Double Lift — Where Do Models Disagree?")
@@ -1053,7 +1053,7 @@ elif page == "🤖 GLM vs XGBoost":
         yaxis_title="Average Frequency",
         template="plotly_white", height=400
     )
-    st.plotly_chart(fig_dl, use_container_width=True)
+    st.plotly_chart(fig_dl, width='stretch')
 
     # --- SHAP ---
     section_header("🔍 SHAP Interpretability — XGBoost")
@@ -1083,7 +1083,7 @@ elif page == "🤖 GLM vs XGBoost":
                            color="Mean |SHAP|", color_continuous_scale="Reds",
                            title="Top 15 Features by Mean |SHAP| Value")
         fig_shap.update_layout(template="plotly_white", height=500, showlegend=False)
-        st.plotly_chart(fig_shap, use_container_width=True)
+        st.plotly_chart(fig_shap, width='stretch')
 
         if "BonusMalus" in X_sample.columns:
             st.markdown("#### SHAP Dependence — Bonus-Malus")
@@ -1096,7 +1096,7 @@ elif page == "🤖 GLM vs XGBoost":
                 color_continuous_scale="Viridis", opacity=0.5
             )
             fig_dep.update_layout(template="plotly_white", height=400)
-            st.plotly_chart(fig_dep, use_container_width=True)
+            st.plotly_chart(fig_dep, width='stretch')
 
     except Exception as e:
         st.warning(f"SHAP analysis requires the `shap` library. Error: {e}")
@@ -1115,7 +1115,7 @@ elif page == "🤖 GLM vs XGBoost":
                      "⚠️ Slower", "✅ Auto-captured", "⚠️ Can overfit",
                      "⚠️ More complex", "⚠️ Needs explainability layer"]
     })
-    st.dataframe(pros_cons, use_container_width=True, hide_index=True)
+    st.dataframe(pros_cons, width='stretch', hide_index=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1174,7 +1174,7 @@ elif page == "📈 Model Monitoring":
     fig_ae.update_layout(title="Monthly A/E Ratio", xaxis_title="Month",
                           yaxis_title="Actual / Expected",
                           template="plotly_white", height=420)
-    st.plotly_chart(fig_ae, use_container_width=True)
+    st.plotly_chart(fig_ae, width='stretch')
 
     # --- PSI ---
     section_header("📊 Population Stability Index (PSI)")
@@ -1231,7 +1231,7 @@ elif page == "📈 Model Monitoring":
             template="plotly_white", height=380,
             xaxis_title="Residual", yaxis_title="Count",
         )
-        st.plotly_chart(fig_rh, use_container_width=True)
+        st.plotly_chart(fig_rh, width='stretch')
 
     with col_res2:
         sample_idx = np.random.choice(len(pred), size=min(3000, len(pred)), replace=False)
@@ -1243,7 +1243,7 @@ elif page == "📈 Model Monitoring":
             template="plotly_white", height=380,
             xaxis_title="Predicted Value", yaxis_title="Residual",
         )
-        st.plotly_chart(fig_rs, use_container_width=True)
+        st.plotly_chart(fig_rs, width='stretch')
 
     # --- Segment A/E ---
     section_header("🎯 Segment-Level A/E Monitoring")
@@ -1290,7 +1290,7 @@ elif page == "📈 Model Monitoring":
         xaxis_title=SEGMENT_LABELS.get(seg_var_mon, seg_var_mon),
         yaxis_title="A/E Ratio",
     )
-    st.plotly_chart(fig_sae, use_container_width=True)
+    st.plotly_chart(fig_sae, width='stretch')
 
     # --- Summary ---
     section_header("📝 Monitoring Summary & Recommendations")
