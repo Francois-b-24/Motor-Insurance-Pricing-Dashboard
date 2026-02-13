@@ -1,5 +1,7 @@
 # 🏎️ Motor Insurance Pricing Dashboard
 
+https://insuranalytics.streamlit.app/
+
 A comprehensive pricing actuary toolkit built with Streamlit, demonstrating end-to-end insurance pricing capabilities from portfolio analysis to model monitoring.
 
 ## 📋 Features
