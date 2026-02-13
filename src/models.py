@@ -8,6 +8,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import statsmodels.api as sm
+from scipy import stats
 from xgboost import XGBRegressor
 import warnings
 
@@ -146,6 +147,113 @@ def compute_metrics(y_true, y_pred, weights=None):
     }
 
 
+def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
+    """
+    Compute statistical diagnostics for GLM models.
+    Returns dictionary with test statistics and diagnostics.
+    """
+    if weights is None:
+        weights = np.ones(len(y_true))
+    
+    diagnostics = {}
+    
+    # Basic model statistics
+    diagnostics["deviance"] = glm_results.deviance
+    diagnostics["null_deviance"] = glm_results.null_deviance
+    diagnostics["df_resid"] = glm_results.df_resid
+    diagnostics["df_model"] = glm_results.df_model
+    diagnostics["aic"] = glm_results.aic
+    diagnostics["bic"] = glm_results.bic
+    
+    # Pseudo R-squared
+    diagnostics["pseudo_r2"] = 1 - (glm_results.deviance / glm_results.null_deviance)
+    
+    # Pearson Chi-square test
+    # Avoid division by zero
+    y_pred_safe = np.clip(y_pred, 1e-10, None)
+    pearson_residuals = (y_true - y_pred) / np.sqrt(y_pred_safe)
+    pearson_chi2 = np.sum(weights * pearson_residuals**2)
+    diagnostics["pearson_chi2"] = pearson_chi2
+    diagnostics["pearson_chi2_pvalue"] = 1 - stats.chi2.cdf(
+        pearson_chi2, glm_results.df_resid
+    )
+    
+    # Overdispersion test (for Poisson)
+    if hasattr(glm_results, 'family') and 'Poisson' in str(glm_results.family):
+        # Dean's test for overdispersion
+        dispersion_ratio = pearson_chi2 / glm_results.df_resid
+        diagnostics["dispersion_ratio"] = dispersion_ratio
+        diagnostics["overdispersed"] = dispersion_ratio > 1.5
+        
+        # Dean's test statistic
+        dean_stat = np.sum(weights * ((y_true - y_pred)**2 - y_true)) / np.sqrt(
+            2 * np.sum(weights * y_pred_safe**2)
+        )
+        diagnostics["dean_statistic"] = dean_stat
+        diagnostics["dean_pvalue"] = 2 * (1 - stats.norm.cdf(abs(dean_stat)))
+    
+    # Likelihood Ratio Test (model vs null)
+    lr_stat = glm_results.null_deviance - glm_results.deviance
+    diagnostics["lr_statistic"] = lr_stat
+    diagnostics["lr_pvalue"] = 1 - stats.chi2.cdf(
+        lr_stat, glm_results.df_model
+    )
+    
+    # Residuals
+    diagnostics["pearson_residuals"] = pearson_residuals
+    diagnostics["deviance_residuals"] = glm_results.resid_deviance
+    
+    return diagnostics
+
+
+def compute_severity_analysis(severity_values, claim_counts=None):
+    """
+    Analyze severity distribution: VaR, TVaR, distribution tests.
+    """
+    if claim_counts is None:
+        claim_counts = np.ones(len(severity_values))
+    
+    # Filter non-zero severities
+    mask = severity_values > 0
+    sev_nonzero = severity_values[mask]
+    counts_nonzero = claim_counts[mask] if len(claim_counts) == len(severity_values) else np.ones(len(sev_nonzero))
+    
+    if len(sev_nonzero) == 0:
+        return {}
+    
+    analysis = {}
+    
+    # Basic statistics
+    analysis["mean"] = np.average(sev_nonzero, weights=counts_nonzero)
+    analysis["median"] = np.median(sev_nonzero)
+    analysis["std"] = np.sqrt(np.average((sev_nonzero - analysis["mean"])**2, weights=counts_nonzero))
+    analysis["cv"] = analysis["std"] / analysis["mean"] if analysis["mean"] > 0 else 0
+    
+    # Percentiles
+    percentiles = [50, 75, 90, 95, 99, 99.5, 99.9]
+    for p in percentiles:
+        analysis[f"p{p}"] = np.percentile(sev_nonzero, p)
+    
+    # VaR and TVaR
+    analysis["var_95"] = np.percentile(sev_nonzero, 95)
+    analysis["var_99"] = np.percentile(sev_nonzero, 99)
+    
+    # TVaR (Conditional Tail Expectation)
+    analysis["tvar_95"] = sev_nonzero[sev_nonzero >= analysis["var_95"]].mean() if len(sev_nonzero[sev_nonzero >= analysis["var_95"]]) > 0 else analysis["var_95"]
+    analysis["tvar_99"] = sev_nonzero[sev_nonzero >= analysis["var_99"]].mean() if len(sev_nonzero[sev_nonzero >= analysis["var_99"]]) > 0 else analysis["var_99"]
+    
+    # Skewness and Kurtosis
+    analysis["skewness"] = stats.skew(sev_nonzero)
+    analysis["kurtosis"] = stats.kurtosis(sev_nonzero)
+    
+    # Distribution tests (log-normal vs gamma)
+    log_sev = np.log(sev_nonzero[sev_nonzero > 0])
+    analysis["log_mean"] = np.mean(log_sev)
+    analysis["log_std"] = np.std(log_sev)
+    
+    return analysis
+
+
 def run_models(X, y, w, claim_count, df_model=None):
     """
     Full modeling pipeline:
@@ -226,6 +334,12 @@ def run_models(X, y, w, claim_count, df_model=None):
     # Lift curves
     glm_lift = compute_lift_curve(y_test, glm_freq_pred_test, w_test)
     xgb_lift = compute_lift_curve(y_test, xgb_pred_test, w_test)
+    
+    # GLM Diagnostics
+    glm_diagnostics = compute_glm_diagnostics(glm_freq_results, y_train, glm_freq_pred_train, w_train)
+    
+    # Severity analysis
+    severity_analysis = compute_severity_analysis(sev_train, cc_train) if len(sev_train) > 0 else {}
 
     return {
         # Frequency models
@@ -260,4 +374,7 @@ def run_models(X, y, w, claim_count, df_model=None):
         # Lift curves
         "glm_lift": glm_lift,
         "xgb_lift": xgb_lift,
+        # Diagnostics
+        "glm_diagnostics": glm_diagnostics,
+        "severity_analysis": severity_analysis,
     }

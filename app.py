@@ -209,7 +209,7 @@ if page == "📊 Portfolio Overview":
     st.markdown("*Explore the structure, risk distribution, and segmentation of the motor insurance portfolio.*")
 
     # --- KPI Row ---
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         kpi_card("Policies", fmt_number(len(df)))
     with col2:
@@ -221,6 +221,10 @@ if page == "📊 Portfolio Overview":
     with col5:
         avg_pp = df["TotalClaimAmount"].sum() / df["Exposure"].sum()
         kpi_card("Avg Pure Premium", fmt_number(avg_pp, prefix="€"))
+    with col6:
+        # Average severity (Loss Ratio requires model predictions, shown in Pure Premium page)
+        avg_sev = df.loc[df["ClaimNb"] > 0, "TotalClaimAmount"].sum() / df.loc[df["ClaimNb"] > 0, "ClaimNb"].sum() if (df["ClaimNb"] > 0).any() else 0
+        kpi_card("Avg Severity", fmt_number(avg_sev, prefix="€"))
 
     st.markdown("")
 
@@ -544,6 +548,143 @@ elif page == "🎯 GLM Pricing Model":
     else:
         st.info(f"ℹ️ This profile is within **±20%** of portfolio average — standard risk.")
 
+    # --- GLM Statistical Diagnostics ---
+    section_header("🔬 GLM Statistical Diagnostics")
+    
+    diagnostics = results.get("glm_diagnostics", {})
+    if diagnostics:
+        st.markdown("""
+        **Statistical tests** validate the quality and assumptions of the GLM model.
+        These diagnostics help identify potential issues like overdispersion, poor fit, or missing variables.
+        """)
+        
+        diag_col1, diag_col2, diag_col3, diag_col4 = st.columns(4)
+        with diag_col1:
+            st.metric("Pseudo R²", f"{diagnostics.get('pseudo_r2', 0):.4f}")
+            st.caption("Model explanatory power")
+        with diag_col2:
+            st.metric("AIC", f"{diagnostics.get('aic', 0):.2f}")
+            st.caption("Lower is better")
+        with diag_col3:
+            st.metric("BIC", f"{diagnostics.get('bic', 0):.2f}")
+            st.caption("Lower is better")
+        with diag_col4:
+            dispersion = diagnostics.get('dispersion_ratio', 1.0)
+            st.metric("Dispersion Ratio", f"{dispersion:.3f}")
+            if dispersion > 1.5:
+                st.caption("⚠️ Overdispersed (consider Negative Binomial)")
+            else:
+                st.caption("✅ Poisson appropriate")
+        
+        # Test results
+        st.markdown("#### Test Results")
+        test_results = pd.DataFrame({
+            "Test": ["Likelihood Ratio Test", "Pearson Chi-square", "Dean's Overdispersion Test"],
+            "Statistic": [
+                f"{diagnostics.get('lr_statistic', 0):.2f}",
+                f"{diagnostics.get('pearson_chi2', 0):.2f}",
+                f"{diagnostics.get('dean_statistic', 0):.4f}"
+            ],
+            "P-value": [
+                f"{diagnostics.get('lr_pvalue', 1):.2e}" if diagnostics.get('lr_pvalue', 1) < 0.001 else f"{diagnostics.get('lr_pvalue', 1):.4f}",
+                f"{diagnostics.get('pearson_chi2_pvalue', 1):.2e}" if diagnostics.get('pearson_chi2_pvalue', 1) < 0.001 else f"{diagnostics.get('pearson_chi2_pvalue', 1):.4f}",
+                f"{diagnostics.get('dean_pvalue', 1):.2e}" if diagnostics.get('dean_pvalue', 1) < 0.001 else f"{diagnostics.get('dean_pvalue', 1):.4f}"
+            ],
+            "Interpretation": [
+                "✅ Model significantly better than null" if diagnostics.get('lr_pvalue', 1) < 0.05 else "❌ Model not significantly better",
+                "✅ Good fit" if 0.05 < diagnostics.get('pearson_chi2_pvalue', 1) < 0.95 else "⚠️ Check model fit",
+                "✅ No overdispersion" if diagnostics.get('dean_pvalue', 1) > 0.05 else "⚠️ Overdispersion detected"
+            ]
+        })
+        st.dataframe(test_results, use_container_width=True, hide_index=True)
+        
+        # Residual plots
+        st.markdown("#### Residual Analysis")
+        res_col1, res_col2 = st.columns(2)
+        
+        with res_col1:
+            pearson_res = diagnostics.get('pearson_residuals', np.array([]))
+            if len(pearson_res) > 0:
+                fig_pearson = px.histogram(x=pearson_res, nbins=50,
+                                           title="Pearson Residuals Distribution",
+                                           color_discrete_sequence=[COLORS["secondary"]])
+                fig_pearson.add_vline(x=0, line_dash="dash", line_color="red")
+                fig_pearson.update_layout(template="plotly_white", height=350,
+                                         xaxis_title="Pearson Residual", yaxis_title="Frequency")
+                st.plotly_chart(fig_pearson, use_container_width=True)
+        
+        with res_col2:
+            deviance_res = diagnostics.get('deviance_residuals', np.array([]))
+            if len(deviance_res) > 0:
+                fig_dev = px.histogram(x=deviance_res, nbins=50,
+                                      title="Deviance Residuals Distribution",
+                                      color_discrete_sequence=[COLORS["accent"]])
+                fig_dev.add_vline(x=0, line_dash="dash", line_color="red")
+                fig_dev.update_layout(template="plotly_white", height=350,
+                                    xaxis_title="Deviance Residual", yaxis_title="Frequency")
+                st.plotly_chart(fig_dev, use_container_width=True)
+
+    # --- Pricing Table Export ---
+    section_header("📋 Pricing Table Generator")
+    
+    st.markdown("""
+    Generate a **pricing table** with pure premium and commercial premium (with loadings) for different risk profiles.
+    This table can be exported to CSV/Excel for use in production systems.
+    """)
+    
+    # Loadings configuration
+    load_col1, load_col2, load_col3 = st.columns(3)
+    with load_col1:
+        expense_loading = st.slider("Expense Loading (%)", 0.0, 50.0, 15.0) / 100
+    with load_col2:
+        profit_margin = st.slider("Profit Margin (%)", 0.0, 20.0, 5.0) / 100
+    with load_col3:
+        reinsurance_loading = st.slider("Reinsurance Loading (%)", 0.0, 15.0, 3.0) / 100
+    
+    total_loading = 1 + expense_loading + profit_margin + reinsurance_loading
+    
+    # Generate pricing table by segment
+    pricing_segment = st.selectbox(
+        "Select segmentation for pricing table:",
+        ["Area", "DrivAge_bin", "VehAge_bin", "VehPower_bin", "BonusMalus_bin"],
+        format_func=lambda x: SEGMENT_LABELS.get(x, x),
+        key="pricing_seg"
+    )
+    
+    # Calculate average pure premium by segment
+    seg_pricing = df.groupby(pricing_segment, observed=True).agg(
+        Exposure=("Exposure", "sum"),
+        TotalAmount=("TotalClaimAmount", "sum"),
+        Policies=("ClaimNb", "count")
+    ).reset_index()
+    seg_pricing["PurePremium"] = seg_pricing["TotalAmount"] / seg_pricing["Exposure"]
+    seg_pricing["CommercialPremium"] = seg_pricing["PurePremium"] * total_loading
+    seg_pricing["Relativity"] = seg_pricing["PurePremium"] / seg_pricing["PurePremium"].mean()
+    
+    # Display table
+    pricing_display = seg_pricing[[pricing_segment, "Policies", "Exposure", "PurePremium", 
+                                   "CommercialPremium", "Relativity"]].copy()
+    pricing_display.columns = [
+        SEGMENT_LABELS.get(pricing_segment, pricing_segment),
+        "Policies", "Exposure (PY)", "Pure Premium (€)", "Commercial Premium (€)", "Relativity"
+    ]
+    pricing_display["Pure Premium (€)"] = pricing_display["Pure Premium (€)"].apply(lambda x: fmt_number(x, prefix="€", decimals=2))
+    pricing_display["Commercial Premium (€)"] = pricing_display["Commercial Premium (€)"].apply(lambda x: fmt_number(x, prefix="€", decimals=2))
+    pricing_display["Relativity"] = pricing_display["Relativity"].round(3)
+    
+    st.dataframe(pricing_display, use_container_width=True, hide_index=True)
+    
+    # Export button
+    csv_data = seg_pricing.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download Pricing Table (CSV)",
+        data=csv_data,
+        file_name=f"pricing_table_{pricing_segment}.csv",
+        mime="text/csv"
+    )
+    
+    st.info(f"💡 **Total Loading Factor:** {total_loading:.2%} (Pure Premium × {total_loading:.2f} = Commercial Premium)")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE 3 — PURE PREMIUM
@@ -659,6 +800,127 @@ elif page == "💰 Pure Premium":
         yaxis=dict(dtick=1),
     )
     st.plotly_chart(fig_pp_heat, use_container_width=True)
+
+    # --- Severity Distribution Analysis ---
+    section_header("📊 Severity Distribution Analysis")
+    
+    st.markdown("""
+    **Deep dive into claim severity distribution** — understanding the tail risk, extreme values, and distribution characteristics.
+    Critical for pricing, reserving, and reinsurance decisions.
+    """)
+    
+    severity_analysis = results.get("severity_analysis", {})
+    sev_train = results.get("sev_train", np.array([]))
+    cc_train = results.get("cc_train", np.array([]))
+    
+    if severity_analysis and len(sev_train) > 0:
+        # Filter non-zero severities
+        sev_nonzero = sev_train[sev_train > 0]
+        
+        # Summary statistics
+        sev_col1, sev_col2, sev_col3, sev_col4, sev_col5 = st.columns(5)
+        with sev_col1:
+            kpi_card("Mean Severity", fmt_number(severity_analysis.get('mean', 0), prefix="€"))
+        with sev_col2:
+            kpi_card("Median Severity", fmt_number(severity_analysis.get('median', 0), prefix="€"))
+        with sev_col3:
+            kpi_card("Coefficient of Variation", f"{severity_analysis.get('cv', 0):.3f}")
+        with sev_col4:
+            kpi_card("Skewness", f"{severity_analysis.get('skewness', 0):.2f}")
+        with sev_col5:
+            kpi_card("Kurtosis", f"{severity_analysis.get('kurtosis', 0):.2f}")
+        
+        # Distribution visualization
+        dist_col1, dist_col2 = st.columns(2)
+        
+        with dist_col1:
+            # Histogram with log scale
+            fig_sev_hist = go.Figure()
+            fig_sev_hist.add_trace(go.Histogram(
+                x=sev_nonzero, nbinsx=100,
+                marker_color=COLORS["secondary"],
+                name="Severity Distribution"
+            ))
+            fig_sev_hist.add_vline(x=severity_analysis.get('mean', 0), line_dash="dash",
+                                   line_color="red", annotation_text="Mean")
+            fig_sev_hist.add_vline(x=severity_analysis.get('median', 0), line_dash="dash",
+                                   line_color="blue", annotation_text="Median")
+            fig_sev_hist.update_layout(
+                title="Severity Distribution (Linear Scale)",
+                xaxis_title="Claim Amount (€)",
+                yaxis_title="Frequency",
+                template="plotly_white", height=400
+            )
+            st.plotly_chart(fig_sev_hist, use_container_width=True)
+        
+        with dist_col2:
+            # Log scale histogram
+            log_sev = np.log(sev_nonzero[sev_nonzero > 0])
+            fig_sev_log = go.Figure()
+            fig_sev_log.add_trace(go.Histogram(
+                x=log_sev, nbinsx=50,
+                marker_color=COLORS["accent"],
+                name="Log(Severity) Distribution"
+            ))
+            fig_sev_log.add_vline(x=severity_analysis.get('log_mean', 0), line_dash="dash",
+                                  line_color="red", annotation_text="Log Mean")
+            fig_sev_log.update_layout(
+                title="Log(Severity) Distribution",
+                xaxis_title="Log(Claim Amount)",
+                yaxis_title="Frequency",
+                template="plotly_white", height=400
+            )
+            st.plotly_chart(fig_sev_log, use_container_width=True)
+        
+        # Risk measures
+        st.markdown("#### Risk Measures (VaR & TVaR)")
+        risk_col1, risk_col2, risk_col3, risk_col4 = st.columns(4)
+        with risk_col1:
+            kpi_card("VaR 95%", fmt_number(severity_analysis.get('var_95', 0), prefix="€"))
+        with risk_col2:
+            kpi_card("VaR 99%", fmt_number(severity_analysis.get('var_99', 0), prefix="€"))
+        with risk_col3:
+            kpi_card("TVaR 95%", fmt_number(severity_analysis.get('tvar_95', 0), prefix="€"))
+        with risk_col4:
+            kpi_card("TVaR 99%", fmt_number(severity_analysis.get('tvar_99', 0), prefix="€"))
+        
+        st.caption("**VaR (Value at Risk):** Maximum loss at given confidence level | **TVaR (Tail Value at Risk):** Expected loss beyond VaR threshold")
+        
+        # Percentiles table
+        st.markdown("#### Severity Percentiles")
+        percentiles_data = {
+            "Percentile": ["50th (Median)", "75th", "90th", "95th", "99th", "99.5th", "99.9th"],
+            "Value (€)": [
+                fmt_number(severity_analysis.get('p50', 0), prefix="€"),
+                fmt_number(severity_analysis.get('p75', 0), prefix="€"),
+                fmt_number(severity_analysis.get('p90', 0), prefix="€"),
+                fmt_number(severity_analysis.get('p95', 0), prefix="€"),
+                fmt_number(severity_analysis.get('p99', 0), prefix="€"),
+                fmt_number(severity_analysis.get('p99.5', 0), prefix="€"),
+                fmt_number(severity_analysis.get('p99.9', 0), prefix="€"),
+            ]
+        }
+        st.dataframe(pd.DataFrame(percentiles_data), use_container_width=True, hide_index=True)
+        
+        # Extreme values analysis
+        st.markdown("#### Extreme Values Analysis")
+        extreme_threshold = severity_analysis.get('p95', 0)
+        extreme_claims = sev_nonzero[sev_nonzero >= extreme_threshold]
+        extreme_pct = len(extreme_claims) / len(sev_nonzero) * 100 if len(sev_nonzero) > 0 else 0
+        extreme_total = extreme_claims.sum() if len(extreme_claims) > 0 else 0
+        extreme_pct_of_total = extreme_total / sev_nonzero.sum() * 100 if len(sev_nonzero) > 0 else 0
+        
+        ext_col1, ext_col2, ext_col3 = st.columns(3)
+        with ext_col1:
+            st.metric("Claims ≥ 95th percentile", f"{len(extreme_claims)} ({extreme_pct:.2f}%)")
+        with ext_col2:
+            st.metric("Total Amount (Extreme)", fmt_number(extreme_total, prefix="€"))
+        with ext_col3:
+            st.metric("% of Total Severity", f"{extreme_pct_of_total:.1f}%")
+        
+        st.info(f"💡 **Insight:** {extreme_pct:.1f}% of claims (≥95th percentile) represent {extreme_pct_of_total:.1f}% of total claim costs. This highlights the importance of tail risk management.")
+    else:
+        st.info("Severity analysis requires claims data. Please ensure the dataset contains claim severity information.")
 
     # --- Model vs Actual Pure Premium ---
     section_header("🎯 Modeled vs Actual Pure Premium")
