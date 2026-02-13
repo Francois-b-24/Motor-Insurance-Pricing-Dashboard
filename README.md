@@ -16,7 +16,7 @@ A comprehensive pricing actuary toolkit built with Streamlit, demonstrating end-
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.11+ (recommended for compatibility with statsmodels and scipy)
 - pip
 
 ### Installation
