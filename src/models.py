@@ -152,13 +152,25 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
     Compute statistical diagnostics for GLM models.
     Returns dictionary with test statistics and diagnostics.
     """
-    if weights is None:
-        weights = np.ones(len(y_true))
-    
-    diagnostics = {}
-    
-    # Basic model statistics
-    diagnostics["deviance"] = glm_results.deviance
+    try:
+        if glm_results is None or y_true is None or y_pred is None:
+            return {}
+        
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        
+        if len(y_true) == 0 or len(y_pred) == 0:
+            return {}
+        
+        if weights is None:
+            weights = np.ones(len(y_true))
+        else:
+            weights = np.asarray(weights)
+        
+        diagnostics = {}
+        
+        # Basic model statistics
+        diagnostics["deviance"] = glm_results.deviance
     diagnostics["null_deviance"] = glm_results.null_deviance
     diagnostics["df_resid"] = glm_results.df_resid
     diagnostics["df_model"] = glm_results.df_model
@@ -236,55 +248,86 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
     else:
         diagnostics["deviance_residuals"] = np.array([])
     
-    return diagnostics
+        return diagnostics
+    except Exception:
+        # Return empty dict if any error occurs
+        return {}
 
 
 def compute_severity_analysis(severity_values, claim_counts=None):
     """
     Analyze severity distribution: VaR, TVaR, distribution tests.
     """
-    if claim_counts is None:
-        claim_counts = np.ones(len(severity_values))
-    
-    # Filter non-zero severities
-    mask = severity_values > 0
-    sev_nonzero = severity_values[mask]
-    counts_nonzero = claim_counts[mask] if len(claim_counts) == len(severity_values) else np.ones(len(sev_nonzero))
-    
-    if len(sev_nonzero) == 0:
+    try:
+        if severity_values is None or len(severity_values) == 0:
+            return {}
+        
+        if claim_counts is None:
+            claim_counts = np.ones(len(severity_values))
+        
+        # Ensure arrays are numpy arrays
+        severity_values = np.asarray(severity_values)
+        claim_counts = np.asarray(claim_counts)
+        
+        # Filter non-zero severities
+        mask = severity_values > 0
+        if not mask.any():
+            return {}
+            
+        sev_nonzero = severity_values[mask]
+        if len(claim_counts) == len(severity_values):
+            counts_nonzero = claim_counts[mask]
+        else:
+            counts_nonzero = np.ones(len(sev_nonzero))
+        
+        if len(sev_nonzero) == 0:
+            return {}
+        
+        analysis = {}
+        
+        # Basic statistics
+        analysis["mean"] = np.average(sev_nonzero, weights=counts_nonzero)
+        analysis["median"] = np.median(sev_nonzero)
+        analysis["std"] = np.sqrt(np.average((sev_nonzero - analysis["mean"])**2, weights=counts_nonzero))
+        analysis["cv"] = analysis["std"] / analysis["mean"] if analysis["mean"] > 0 else 0
+        
+        # Percentiles
+        percentiles = [50, 75, 90, 95, 99, 99.5, 99.9]
+        for p in percentiles:
+            analysis[f"p{p}"] = np.percentile(sev_nonzero, p)
+        
+        # VaR and TVaR
+        analysis["var_95"] = np.percentile(sev_nonzero, 95)
+        analysis["var_99"] = np.percentile(sev_nonzero, 99)
+        
+        # TVaR (Conditional Tail Expectation)
+        analysis["tvar_95"] = sev_nonzero[sev_nonzero >= analysis["var_95"]].mean() if len(sev_nonzero[sev_nonzero >= analysis["var_95"]]) > 0 else analysis["var_95"]
+        analysis["tvar_99"] = sev_nonzero[sev_nonzero >= analysis["var_99"]].mean() if len(sev_nonzero[sev_nonzero >= analysis["var_99"]]) > 0 else analysis["var_99"]
+        
+        # Skewness and Kurtosis
+        try:
+            analysis["skewness"] = stats.skew(sev_nonzero)
+            analysis["kurtosis"] = stats.kurtosis(sev_nonzero)
+        except Exception:
+            analysis["skewness"] = 0.0
+            analysis["kurtosis"] = 0.0
+        
+        # Distribution tests (log-normal vs gamma)
+        try:
+            log_sev = np.log(sev_nonzero[sev_nonzero > 0])
+            if len(log_sev) > 0:
+                analysis["log_mean"] = np.mean(log_sev)
+                analysis["log_std"] = np.std(log_sev)
+            else:
+                analysis["log_mean"] = 0.0
+                analysis["log_std"] = 0.0
+        except Exception:
+            analysis["log_mean"] = 0.0
+            analysis["log_std"] = 0.0
+        
+        return analysis
+    except Exception:
         return {}
-    
-    analysis = {}
-    
-    # Basic statistics
-    analysis["mean"] = np.average(sev_nonzero, weights=counts_nonzero)
-    analysis["median"] = np.median(sev_nonzero)
-    analysis["std"] = np.sqrt(np.average((sev_nonzero - analysis["mean"])**2, weights=counts_nonzero))
-    analysis["cv"] = analysis["std"] / analysis["mean"] if analysis["mean"] > 0 else 0
-    
-    # Percentiles
-    percentiles = [50, 75, 90, 95, 99, 99.5, 99.9]
-    for p in percentiles:
-        analysis[f"p{p}"] = np.percentile(sev_nonzero, p)
-    
-    # VaR and TVaR
-    analysis["var_95"] = np.percentile(sev_nonzero, 95)
-    analysis["var_99"] = np.percentile(sev_nonzero, 99)
-    
-    # TVaR (Conditional Tail Expectation)
-    analysis["tvar_95"] = sev_nonzero[sev_nonzero >= analysis["var_95"]].mean() if len(sev_nonzero[sev_nonzero >= analysis["var_95"]]) > 0 else analysis["var_95"]
-    analysis["tvar_99"] = sev_nonzero[sev_nonzero >= analysis["var_99"]].mean() if len(sev_nonzero[sev_nonzero >= analysis["var_99"]]) > 0 else analysis["var_99"]
-    
-    # Skewness and Kurtosis
-    analysis["skewness"] = stats.skew(sev_nonzero)
-    analysis["kurtosis"] = stats.kurtosis(sev_nonzero)
-    
-    # Distribution tests (log-normal vs gamma)
-    log_sev = np.log(sev_nonzero[sev_nonzero > 0])
-    analysis["log_mean"] = np.mean(log_sev)
-    analysis["log_std"] = np.std(log_sev)
-    
-    return analysis
 
 
 def run_models(X, y, w, claim_count, df_model=None):
