@@ -58,14 +58,13 @@ def compute_lift_curve(y_true, y_pred, weights=None, n_bins=10):
     df_lift["decile"] = pd.qcut(df_lift["y_pred"], q=n_bins, labels=False,
                                  duplicates="drop")
 
-    lift = df_lift.groupby("decile", observed=True).apply(
+    lift = df_lift.groupby("decile", observed=True)[["y_pred", "y_true", "w"]].apply(
         lambda g: pd.Series({
             "avg_predicted": np.average(g["y_pred"], weights=g["w"]),
             "avg_actual": np.average(g["y_true"], weights=g["w"]),
             "exposure": g["w"].sum(),
             "count": len(g)
-        }),
-        include_groups=False
+        })
     ).reset_index()
 
     lift = lift.sort_values("avg_predicted")
@@ -155,18 +154,18 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
     try:
         if glm_results is None or y_true is None or y_pred is None:
             return {}
-        
+
         y_true = np.asarray(y_true)
         y_pred = np.asarray(y_pred)
-        
+
         if len(y_true) == 0 or len(y_pred) == 0:
             return {}
-        
+
         if weights is None:
             weights = np.ones(len(y_true))
         else:
             weights = np.asarray(weights)
-        
+
         diagnostics = {}
 
         # Basic model statistics
@@ -184,10 +183,8 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
             diagnostics["pseudo_r2"] = 0.0
 
         # Pearson Chi-square test
-        # Avoid division by zero
         y_pred_safe = np.clip(y_pred, 1e-10, None)
         pearson_residuals = (y_true - y_pred) / np.sqrt(y_pred_safe)
-        # Handle NaN/Inf values
         pearson_residuals = np.nan_to_num(pearson_residuals, nan=0.0, posinf=0.0, neginf=0.0)
         pearson_chi2 = np.sum(weights * pearson_residuals**2)
         diagnostics["pearson_chi2"] = pearson_chi2
@@ -200,7 +197,6 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
 
         # Overdispersion test (for Poisson)
         if hasattr(glm_results, 'family') and 'Poisson' in str(glm_results.family):
-            # Dean's test for overdispersion
             if glm_results.df_resid > 0:
                 dispersion_ratio = pearson_chi2 / glm_results.df_resid
                 diagnostics["dispersion_ratio"] = dispersion_ratio
@@ -209,7 +205,6 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
                 diagnostics["dispersion_ratio"] = 1.0
                 diagnostics["overdispersed"] = False
 
-            # Dean's test statistic
             dean_denom = np.sqrt(2 * np.sum(weights * y_pred_safe**2))
             if dean_denom > 0:
                 dean_stat = np.sum(weights * ((y_true - y_pred)**2 - y_true)) / dean_denom
@@ -229,8 +224,7 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
         else:
             diagnostics["lr_pvalue"] = 1.0
 
-        # Residuals - only store limited sample to avoid memory issues
-        # Store only first 10000 values for visualization
+        # Residuals — limited sample for visualization
         max_residuals = 10000
         if len(pearson_residuals) > max_residuals:
             diagnostics["pearson_residuals"] = pearson_residuals[:max_residuals]
@@ -239,7 +233,6 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
 
         if hasattr(glm_results, 'resid_deviance'):
             dev_res = glm_results.resid_deviance
-            # Handle NaN/Inf
             dev_res = np.nan_to_num(dev_res, nan=0.0, posinf=0.0, neginf=0.0)
             if len(dev_res) > max_residuals:
                 diagnostics["deviance_residuals"] = dev_res[:max_residuals]
@@ -250,7 +243,6 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
 
         return diagnostics
     except Exception:
-        # Return empty dict if any error occurs
         return {}
 
 
