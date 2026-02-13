@@ -66,7 +66,7 @@ def render(df, get_modeling_data, run_models):
         fig_rel.update_layout(title="Relativities — Key Continuous Variables",
                                yaxis_title="Relativity (exp(β))",
                                template="plotly_white", height=400)
-        st.plotly_chart(fig_rel, use_container_width=True)
+        st.plotly_chart(fig_rel, width="stretch")
 
     # Area relativities
     area_coefs = coef_df[coef_df["Variable"].str.startswith("Area_")].copy()
@@ -84,7 +84,7 @@ def render(df, get_modeling_data, run_models):
                            title="Area Relativities (A = reference)")
         fig_area.add_hline(y=1, line_dash="dash", line_color="gray")
         fig_area.update_layout(template="plotly_white", height=350)
-        st.plotly_chart(fig_area, use_container_width=True)
+        st.plotly_chart(fig_area, width="stretch")
 
     with st.expander("📄 View Full GLM Frequency Coefficient Table"):
         display_df = coef_df[["Variable", "Coefficient", "Std Error", "P-value",
@@ -94,7 +94,7 @@ def render(df, get_modeling_data, run_models):
         display_df["P-value"] = display_df["P-value"].apply(
             lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
         display_df["Relativity"] = display_df["Relativity"].round(4)
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df, width="stretch", hide_index=True)
 
     # --- Severity Model ---
     section_header("📐 Severity Model — Gamma GLM")
@@ -133,7 +133,7 @@ def render(df, get_modeling_data, run_models):
                 yaxis_title="Relativity (exp(β))",
                 template="plotly_white", height=400,
             )
-            st.plotly_chart(fig_sev_rel, use_container_width=True)
+            st.plotly_chart(fig_sev_rel, width="stretch")
 
         with st.expander("📄 View Full Severity GLM Coefficient Table"):
             sev_display = sev_coef_df.copy()
@@ -141,7 +141,7 @@ def render(df, get_modeling_data, run_models):
             sev_display["Relativity"] = sev_display["Relativity"].round(4)
             sev_display["P-value"] = sev_display["P-value"].apply(
                 lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
-            st.dataframe(sev_display, use_container_width=True, hide_index=True)
+            st.dataframe(sev_display, width="stretch", hide_index=True)
     else:
         st.info("Severity model could not be fitted (insufficient claims data). Using portfolio average severity.")
 
@@ -263,7 +263,7 @@ def render(df, get_modeling_data, run_models):
                 "✅ No overdispersion" if diagnostics.get("dean_pvalue", 1) > 0.05 else "⚠️ Overdispersion detected",
             ],
         })
-        st.dataframe(test_results, use_container_width=True, hide_index=True)
+        st.dataframe(test_results, width="stretch", hide_index=True)
 
         # Residual plots
         st.markdown("#### Residual Analysis")
@@ -284,7 +284,7 @@ def render(df, get_modeling_data, run_models):
                 fig_pearson.add_vline(x=0, line_dash="dash", line_color="red")
                 fig_pearson.update_layout(template="plotly_white", height=350,
                                          xaxis_title="Pearson Residual", yaxis_title="Frequency")
-                st.plotly_chart(fig_pearson, use_container_width=True)
+                st.plotly_chart(fig_pearson, width="stretch")
 
         with res_col2:
             deviance_res = diagnostics.get("deviance_residuals", np.array([]))
@@ -301,7 +301,7 @@ def render(df, get_modeling_data, run_models):
                 fig_dev.add_vline(x=0, line_dash="dash", line_color="red")
                 fig_dev.update_layout(template="plotly_white", height=350,
                                     xaxis_title="Deviance Residual", yaxis_title="Frequency")
-                st.plotly_chart(fig_dev, use_container_width=True)
+                st.plotly_chart(fig_dev, width="stretch")
 
     # --- Pricing Table Export ---
     section_header("📋 Pricing Table Generator")
@@ -349,7 +349,7 @@ def render(df, get_modeling_data, run_models):
         lambda x: fmt_number(x, prefix="€", decimals=2))
     pricing_display["Relativity"] = pricing_display["Relativity"].round(3)
 
-    st.dataframe(pricing_display, use_container_width=True, hide_index=True)
+    st.dataframe(pricing_display, width="stretch", hide_index=True)
 
     csv_data = seg_pricing.to_csv(index=False).encode("utf-8")
     st.download_button(

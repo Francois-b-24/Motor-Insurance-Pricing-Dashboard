@@ -80,7 +80,7 @@ def render(df):
             template="plotly_white", height=400, showlegend=False,
             xaxis=dict(tickangle=-45),
         )
-        st.plotly_chart(fig_exp, use_container_width=True)
+        st.plotly_chart(fig_exp, width="stretch")
 
     with col_right:
         avg_freq = df["ClaimNb"].sum() / df["Exposure"].sum()
@@ -104,7 +104,7 @@ def render(df):
             template="plotly_white", height=400, showlegend=False,
             xaxis=dict(tickangle=-45),
         )
-        st.plotly_chart(fig_freq, use_container_width=True)
+        st.plotly_chart(fig_freq, width="stretch")
 
     # --- Heatmap ---
     section_header("🔥 Risk Heatmap — Driver Age × Bonus-Malus")
@@ -129,7 +129,7 @@ def render(df):
         xaxis=dict(tickangle=-45, dtick=1),
         yaxis=dict(dtick=1),
     )
-    st.plotly_chart(fig_heat, use_container_width=True)
+    st.plotly_chart(fig_heat, width="stretch")
 
     # --- BM Distribution ---
     section_header("📉 Bonus-Malus Distribution")
@@ -145,7 +145,7 @@ def render(df):
             template="plotly_white", height=350,
             xaxis_title="Bonus-Malus", yaxis_title="Number of Policies",
         )
-        st.plotly_chart(fig_bm, use_container_width=True)
+        st.plotly_chart(fig_bm, width="stretch")
 
     with col_bm2:
         bm_freq = df.groupby("BonusMalus_bin", observed=True).agg(
@@ -162,4 +162,4 @@ def render(df):
             xaxis_title="Bonus-Malus", yaxis_title="Frequency",
             xaxis=dict(tickangle=-45),
         )
-        st.plotly_chart(fig_bm_freq, use_container_width=True)
+        st.plotly_chart(fig_bm_freq, width="stretch")

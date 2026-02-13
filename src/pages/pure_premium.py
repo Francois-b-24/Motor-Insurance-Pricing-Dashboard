@@ -94,7 +94,7 @@ def render(df, get_modeling_data, run_models):
         template="plotly_white", height=450, showlegend=False,
     )
     fig_decomp.update_xaxes(tickangle=-45)
-    st.plotly_chart(fig_decomp, use_container_width=True)
+    st.plotly_chart(fig_decomp, width="stretch")
 
     # --- Pure Premium Heatmap ---
     section_header("🔥 Pure Premium Heatmap — Driver Age × Bonus-Malus")
@@ -121,7 +121,7 @@ def render(df, get_modeling_data, run_models):
         xaxis=dict(tickangle=-45, dtick=1),
         yaxis=dict(dtick=1),
     )
-    st.plotly_chart(fig_pp_heat, use_container_width=True)
+    st.plotly_chart(fig_pp_heat, width="stretch")
 
     # --- Severity Distribution Analysis ---
     section_header("📊 Severity Distribution Analysis")
@@ -168,7 +168,7 @@ def render(df, get_modeling_data, run_models):
                 yaxis_title="Frequency",
                 template="plotly_white", height=400,
             )
-            st.plotly_chart(fig_sev_hist, use_container_width=True)
+            st.plotly_chart(fig_sev_hist, width="stretch")
 
         with dist_col2:
             log_sev = np.log(sev_nonzero[sev_nonzero > 0])
@@ -186,7 +186,7 @@ def render(df, get_modeling_data, run_models):
                 yaxis_title="Frequency",
                 template="plotly_white", height=400,
             )
-            st.plotly_chart(fig_sev_log, use_container_width=True)
+            st.plotly_chart(fig_sev_log, width="stretch")
 
         st.markdown("#### Risk Measures (VaR & TVaR)")
         risk_col1, risk_col2, risk_col3, risk_col4 = st.columns(4)
@@ -214,7 +214,7 @@ def render(df, get_modeling_data, run_models):
                 fmt_number(severity_analysis.get("p99.9", 0), prefix="€"),
             ],
         }
-        st.dataframe(pd.DataFrame(percentiles_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(percentiles_data), width="stretch", hide_index=True)
 
         st.markdown("#### Extreme Values Analysis")
         extreme_threshold = severity_analysis.get("p95", 0)

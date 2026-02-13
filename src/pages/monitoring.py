@@ -77,7 +77,7 @@ def render(df, get_modeling_data, run_models):
     fig_ae.update_layout(title="Monthly A/E Ratio", xaxis_title="Month",
                           yaxis_title="Actual / Expected",
                           template="plotly_white", height=420)
-    st.plotly_chart(fig_ae, use_container_width=True)
+    st.plotly_chart(fig_ae, width="stretch")
 
     # --- PSI ---
     section_header("📊 Population Stability Index (PSI)")
@@ -124,7 +124,7 @@ def render(df, get_modeling_data, run_models):
             template="plotly_white", height=380,
             xaxis_title="Residual", yaxis_title="Count",
         )
-        st.plotly_chart(fig_rh, use_container_width=True)
+        st.plotly_chart(fig_rh, width="stretch")
 
     with col_res2:
         sample_idx = np.random.choice(len(pred), size=min(3000, len(pred)), replace=False)
@@ -136,7 +136,7 @@ def render(df, get_modeling_data, run_models):
             template="plotly_white", height=380,
             xaxis_title="Predicted Value", yaxis_title="Residual",
         )
-        st.plotly_chart(fig_rs, use_container_width=True)
+        st.plotly_chart(fig_rs, width="stretch")
 
     # --- Segment A/E ---
     section_header("🎯 Segment-Level A/E Monitoring")
@@ -183,7 +183,7 @@ def render(df, get_modeling_data, run_models):
         xaxis_title=SEGMENT_LABELS.get(seg_var_mon, seg_var_mon),
         yaxis_title="A/E Ratio",
     )
-    st.plotly_chart(fig_sae, use_container_width=True)
+    st.plotly_chart(fig_sae, width="stretch")
 
     # --- Summary ---
     section_header("📝 Monitoring Summary & Recommendations")

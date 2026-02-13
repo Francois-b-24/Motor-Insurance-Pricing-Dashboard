@@ -79,7 +79,7 @@ def render(df, get_modeling_data, run_models):
     fig_lift.update_layout(template="plotly_white", height=420,
                             title_text="Ordered Lift: Do models correctly rank risk?")
     fig_lift.update_xaxes(tickangle=-45)
-    st.plotly_chart(fig_lift, use_container_width=True)
+    st.plotly_chart(fig_lift, width="stretch")
 
     # --- Double Lift ---
     section_header("⚖️ Double Lift — Where Do Models Disagree?")
@@ -121,7 +121,7 @@ def render(df, get_modeling_data, run_models):
         yaxis_title="Average Frequency",
         template="plotly_white", height=400,
     )
-    st.plotly_chart(fig_dl, use_container_width=True)
+    st.plotly_chart(fig_dl, width="stretch")
 
     # --- SHAP ---
     section_header("🔍 SHAP Interpretability — XGBoost")
@@ -151,7 +151,7 @@ def render(df, get_modeling_data, run_models):
                            color="Mean |SHAP|", color_continuous_scale="Reds",
                            title="Top 15 Features by Mean |SHAP| Value")
         fig_shap.update_layout(template="plotly_white", height=500, showlegend=False)
-        st.plotly_chart(fig_shap, use_container_width=True)
+        st.plotly_chart(fig_shap, width="stretch")
 
         if "BonusMalus" in X_sample.columns:
             st.markdown("#### SHAP Dependence — Bonus-Malus")
@@ -164,7 +164,7 @@ def render(df, get_modeling_data, run_models):
                 color_continuous_scale="Viridis", opacity=0.5,
             )
             fig_dep.update_layout(template="plotly_white", height=400)
-            st.plotly_chart(fig_dep, use_container_width=True)
+            st.plotly_chart(fig_dep, width="stretch")
 
     except Exception as e:
         st.warning(f"SHAP analysis requires the `shap` library. Error: {e}")
@@ -183,4 +183,4 @@ def render(df, get_modeling_data, run_models):
                      "⚠️ Slower", "✅ Auto-captured", "⚠️ Can overfit",
                      "⚠️ More complex", "⚠️ Needs explainability layer"],
     })
-    st.dataframe(pros_cons, use_container_width=True, hide_index=True)
+    st.dataframe(pros_cons, width="stretch", hide_index=True)
