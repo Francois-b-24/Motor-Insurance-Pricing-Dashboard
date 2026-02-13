@@ -214,7 +214,7 @@ def render(df, get_modeling_data, run_models):
                 fmt_number(severity_analysis.get("p99.9", 0), prefix="€"),
             ],
         }
-        st.dataframe(pd.DataFrame(percentiles_data), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(percentiles_data), use_container_width=True, hide_index=True)
 
         st.markdown("#### Extreme Values Analysis")
         extreme_threshold = severity_analysis.get("p95", 0)

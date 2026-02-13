@@ -94,7 +94,7 @@ def render(df, get_modeling_data, run_models):
         display_df["P-value"] = display_df["P-value"].apply(
             lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
         display_df["Relativity"] = display_df["Relativity"].round(4)
-        st.dataframe(display_df, width="stretch", hide_index=True)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     # --- Severity Model ---
     section_header("📐 Severity Model — Gamma GLM")
@@ -141,7 +141,7 @@ def render(df, get_modeling_data, run_models):
             sev_display["Relativity"] = sev_display["Relativity"].round(4)
             sev_display["P-value"] = sev_display["P-value"].apply(
                 lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
-            st.dataframe(sev_display, width="stretch", hide_index=True)
+            st.dataframe(sev_display, use_container_width=True, hide_index=True)
     else:
         st.info("Severity model could not be fitted (insufficient claims data). Using portfolio average severity.")
 
@@ -263,7 +263,7 @@ def render(df, get_modeling_data, run_models):
                 "✅ No overdispersion" if diagnostics.get("dean_pvalue", 1) > 0.05 else "⚠️ Overdispersion detected",
             ],
         })
-        st.dataframe(test_results, width="stretch", hide_index=True)
+        st.dataframe(test_results, use_container_width=True, hide_index=True)
 
         # Residual plots
         st.markdown("#### Residual Analysis")
@@ -349,7 +349,7 @@ def render(df, get_modeling_data, run_models):
         lambda x: fmt_number(x, prefix="€", decimals=2))
     pricing_display["Relativity"] = pricing_display["Relativity"].round(3)
 
-    st.dataframe(pricing_display, width="stretch", hide_index=True)
+    st.dataframe(pricing_display, use_container_width=True, hide_index=True)
 
     csv_data = seg_pricing.to_csv(index=False).encode("utf-8")
     st.download_button(

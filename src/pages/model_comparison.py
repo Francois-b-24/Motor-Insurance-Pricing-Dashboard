@@ -183,4 +183,4 @@ def render(df, get_modeling_data, run_models):
                      "⚠️ Slower", "✅ Auto-captured", "⚠️ Can overfit",
                      "⚠️ More complex", "⚠️ Needs explainability layer"],
     })
-    st.dataframe(pros_cons, width="stretch", hide_index=True)
+    st.dataframe(pros_cons, use_container_width=True, hide_index=True)
