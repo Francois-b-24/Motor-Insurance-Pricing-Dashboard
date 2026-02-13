@@ -219,6 +219,13 @@ with st.expander("ℹ️ About This Application", expanded=False):
     3. **💰 Pure Premium** — Frequency × Severity decomposition and severity distribution analysis
     4. **🤖 ML Benchmarking** — GLM vs XGBoost comparison with SHAP interpretability
     5. **📈 Model Monitoring** — A/E ratios, PSI drift detection, residual analysis
+
+    ---
+    ### ⚙️ Methodology Note
+    **Portfolio analysis** (tab 1) uses the **full dataset** ({_n_policies} policies).
+    **Modeling** (tabs 2–5) uses a **stratified sub-sample of 100 000 policies** to respect
+    cloud memory constraints. All claims are retained; only non-claim policies are sampled.
+    This preserves the statistical validity of GLM coefficients and relativities.
     """)
 
 # ── Dismissible navigation hint ──────────────────────────────────────────────
@@ -396,6 +403,8 @@ elif page == "🎯 GLM Pricing Model":
     X, y, w, claim_count, df_model = get_cached_modeling_data(df)
     results = run_cached_models(X, y, w, claim_count, df_model)
     glm = results["glm_results"]
+
+    st.caption(f"📐 *Model trained on a stratified sample of {len(X):,.0f} policies (all claims retained) from {len(df):,.0f} total policies.*")
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
