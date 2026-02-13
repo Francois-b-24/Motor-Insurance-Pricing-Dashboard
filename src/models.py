@@ -423,29 +423,21 @@ def run_models(X, y, w, claim_count, df_model=None):
         # Severity model
         "glm_sev_results": glm_sev_results,
         "avg_severity": avg_severity,
-        "glm_sev_pred_all_test": glm_sev_pred_all_test,
-        # Pure premium predictions
-        "glm_pp_pred_test": glm_pp_pred_test,
-        "xgb_pp_pred_test": xgb_pp_pred_test,
-        "pp_test": pp_test,
+        # Pure premium metrics
         "pp_metrics_glm": pp_metrics_glm,
         "pp_metrics_xgb": pp_metrics_xgb,
-        # Data splits
-        "X_train": X_train, "X_test": X_test,
-        "y_train": y_train, "y_test": y_test,
-        "w_train": w_train, "w_test": w_test,
-        "sev_train": sev_train, "sev_test": sev_test,
-        "cc_train": cc_train, "cc_test": cc_test,
-        # Frequency predictions
+        # Data splits (only what the app needs)
+        "X_test": X_test,
+        "y_test": y_test,
+        "w_test": w_test,
+        "sev_train": sev_train,
+        "cc_train": cc_train,
+        # Frequency predictions (test only)
         "glm_pred_test": glm_freq_pred_test,
         "xgb_pred_test": xgb_pred_test,
-        "glm_pred_train": glm_freq_pred_train,
-        "xgb_pred_train": xgb_pred_train,
         # Metrics
         "glm_metrics_test": glm_metrics_test,
         "xgb_metrics_test": xgb_metrics_test,
-        "glm_metrics_train": glm_metrics_train,
-        "xgb_metrics_train": xgb_metrics_train,
         # Lift curves
         "glm_lift": glm_lift,
         "xgb_lift": xgb_lift,
