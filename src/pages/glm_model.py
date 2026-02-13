@@ -2,6 +2,8 @@
 Page 2 — GLM Pricing Model
 """
 
+import traceback
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -15,6 +17,15 @@ from src.utils import fmt_number, kpi_card, section_header
 
 def render(df, get_modeling_data, run_models):
     """Render the GLM Pricing Model page."""
+    try:
+        _render_impl(df, get_modeling_data, run_models)
+    except Exception as exc:
+        st.error(f"❌ Error rendering GLM page: {exc}")
+        st.code(traceback.format_exc(), language="python")
+
+
+def _render_impl(df, get_modeling_data, run_models):
+    """Internal implementation — GLM Pricing Model page."""
 
     st.title("🎯 GLM Pricing Model")
     st.markdown("*Poisson GLM for frequency modeling and Gamma GLM for severity — the industry standards for motor insurance pricing.*")

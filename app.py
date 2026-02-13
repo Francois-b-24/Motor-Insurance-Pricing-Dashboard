@@ -38,13 +38,13 @@ inject_css()
 # DATA & MODEL CACHING
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@st.cache_data(show_spinner="Loading freMTPL2freq + freMTPL2sev datasets...")
+@st.cache_resource(show_spinner="Loading freMTPL2freq + freMTPL2sev datasets...")
 def load_cached_data():
     from src.data_loader import load_data
     return load_data()
 
 
-@st.cache_data(show_spinner="Preparing modeling features...")
+@st.cache_resource(show_spinner="Preparing modeling features...")
 def get_cached_modeling_data(_df):
     from src.data_loader import get_modeling_data
     return get_modeling_data(_df)

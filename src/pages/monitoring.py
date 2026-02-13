@@ -26,6 +26,16 @@ def _compute_psi(expected, actual, bins=10):
 
 def render(df, get_modeling_data, run_models):
     """Render the Model Monitoring & Drift Detection page."""
+    try:
+        _render_impl(df, get_modeling_data, run_models)
+    except Exception as exc:
+        import traceback
+        st.error(f"❌ Error rendering Monitoring page: {exc}")
+        st.code(traceback.format_exc(), language="python")
+
+
+def _render_impl(df, get_modeling_data, run_models):
+    """Internal implementation — Model Monitoring & Drift Detection page."""
 
     st.title("📈 Model Monitoring & Drift Detection")
     st.markdown("""

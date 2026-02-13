@@ -2,6 +2,8 @@
 Page 3 — Pure Premium Analysis
 """
 
+import traceback
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -15,6 +17,15 @@ from src.utils import fmt_number, kpi_card, section_header
 
 def render(df, get_modeling_data, run_models):
     """Render the Pure Premium Analysis page."""
+    try:
+        _render_impl(df, get_modeling_data, run_models)
+    except Exception as exc:
+        st.error(f"❌ Error rendering Pure Premium page: {exc}")
+        st.code(traceback.format_exc(), language="python")
+
+
+def _render_impl(df, get_modeling_data, run_models):
+    """Internal implementation — Pure Premium Analysis page."""
 
     st.title("💰 Pure Premium Analysis")
     st.markdown("""

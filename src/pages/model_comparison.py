@@ -2,6 +2,8 @@
 Page 4 — GLM vs XGBoost Model Comparison
 """
 
+import traceback
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -15,6 +17,15 @@ from src.utils import section_header
 
 def render(df, get_modeling_data, run_models):
     """Render the GLM vs XGBoost comparison page."""
+    try:
+        _render_impl(df, get_modeling_data, run_models)
+    except Exception as exc:
+        st.error(f"❌ Error rendering Model Comparison page: {exc}")
+        st.code(traceback.format_exc(), language="python")
+
+
+def _render_impl(df, get_modeling_data, run_models):
+    """Internal implementation — GLM vs XGBoost comparison page."""
 
     st.title("🤖 GLM vs XGBoost — Model Comparison")
     st.markdown("""
