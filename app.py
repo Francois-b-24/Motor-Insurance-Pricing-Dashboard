@@ -426,7 +426,7 @@ elif page == "🎯 GLM Pricing Model":
         display_df["P-value"] = display_df["P-value"].apply(
             lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
         display_df["Relativity"] = display_df["Relativity"].round(4)
-        st.dataframe(display_df, width='stretch', hide_index=True)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     # --- Severity Model (moved from Pure Premium page) ---
     section_header("📐 Severity Model — Gamma GLM")
@@ -605,7 +605,14 @@ elif page == "🎯 GLM Pricing Model":
         with res_col1:
             pearson_res = diagnostics.get('pearson_residuals', np.array([]))
             if len(pearson_res) > 0:
-                fig_pearson = px.histogram(x=pearson_res, nbins=50,
+                # Sample if too large to avoid performance issues
+                sample_size = min(10000, len(pearson_res))
+                if sample_size < len(pearson_res):
+                    sample_idx = np.random.choice(len(pearson_res), size=sample_size, replace=False)
+                    pearson_res_sample = pearson_res[sample_idx]
+                else:
+                    pearson_res_sample = pearson_res
+                fig_pearson = px.histogram(x=pearson_res_sample, nbins=50,
                                            title="Pearson Residuals Distribution",
                                            color_discrete_sequence=[COLORS["secondary"]])
                 fig_pearson.add_vline(x=0, line_dash="dash", line_color="red")
@@ -616,7 +623,14 @@ elif page == "🎯 GLM Pricing Model":
         with res_col2:
             deviance_res = diagnostics.get('deviance_residuals', np.array([]))
             if len(deviance_res) > 0:
-                fig_dev = px.histogram(x=deviance_res, nbins=50,
+                # Sample if too large
+                sample_size = min(10000, len(deviance_res))
+                if sample_size < len(deviance_res):
+                    sample_idx = np.random.choice(len(deviance_res), size=sample_size, replace=False)
+                    deviance_res_sample = deviance_res[sample_idx]
+                else:
+                    deviance_res_sample = deviance_res
+                fig_dev = px.histogram(x=deviance_res_sample, nbins=50,
                                       title="Deviance Residuals Distribution",
                                       color_discrete_sequence=[COLORS["accent"]])
                 fig_dev.add_vline(x=0, line_dash="dash", line_color="red")

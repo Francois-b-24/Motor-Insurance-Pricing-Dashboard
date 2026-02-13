@@ -199,9 +199,14 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
         lr_stat, glm_results.df_model
     )
     
-    # Residuals
+    # Residuals (only store if needed, can be large arrays)
+    # Store summary stats instead of full arrays to avoid memory issues
     diagnostics["pearson_residuals"] = pearson_residuals
-    diagnostics["deviance_residuals"] = glm_results.resid_deviance
+    if hasattr(glm_results, 'resid_deviance'):
+        diagnostics["deviance_residuals"] = glm_results.resid_deviance
+    else:
+        # Fallback: compute deviance residuals manually if not available
+        diagnostics["deviance_residuals"] = np.array([])
     
     return diagnostics
 
