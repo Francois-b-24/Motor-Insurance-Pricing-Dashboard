@@ -473,7 +473,7 @@ elif page == "🎯 GLM Pricing Model":
             sev_display["Relativity"] = sev_display["Relativity"].round(4)
             sev_display["P-value"] = sev_display["P-value"].apply(
                 lambda x: f"{x:.2e}" if x < 0.001 else f"{x:.4f}")
-            st.dataframe(sev_display, width='stretch', hide_index=True)
+            st.dataframe(sev_display, use_container_width=True, hide_index=True)
     else:
         st.info("Severity model could not be fitted (insufficient claims data). Using portfolio average severity.")
 
@@ -552,7 +552,7 @@ elif page == "🎯 GLM Pricing Model":
     section_header("🔬 GLM Statistical Diagnostics")
     
     diagnostics = results.get("glm_diagnostics", {})
-    if diagnostics:
+    if diagnostics and len(diagnostics) > 0:
         st.markdown("""
         **Statistical tests** validate the quality and assumptions of the GLM model.
         These diagnostics help identify potential issues like overdispersion, poor fit, or missing variables.
@@ -596,7 +596,7 @@ elif page == "🎯 GLM Pricing Model":
                 "✅ No overdispersion" if diagnostics.get('dean_pvalue', 1) > 0.05 else "⚠️ Overdispersion detected"
             ]
         })
-        st.dataframe(test_results, width='stretch', hide_index=True)
+        st.dataframe(test_results, use_container_width=True, hide_index=True)
         
         # Residual plots
         st.markdown("#### Residual Analysis")
@@ -686,7 +686,7 @@ elif page == "🎯 GLM Pricing Model":
     pricing_display["Commercial Premium (€)"] = pricing_display["Commercial Premium (€)"].apply(lambda x: fmt_number(x, prefix="€", decimals=2))
     pricing_display["Relativity"] = pricing_display["Relativity"].round(3)
     
-    st.dataframe(pricing_display, width='stretch', hide_index=True)
+    st.dataframe(pricing_display, use_container_width=True, hide_index=True)
     
     # Export button
     csv_data = seg_pricing.to_csv(index=False).encode('utf-8')
@@ -914,7 +914,7 @@ elif page == "💰 Pure Premium":
                 fmt_number(severity_analysis.get('p99.9', 0), prefix="€"),
             ]
         }
-        st.dataframe(pd.DataFrame(percentiles_data), width='stretch', hide_index=True)
+        st.dataframe(pd.DataFrame(percentiles_data), use_container_width=True, hide_index=True)
         
         # Extreme values analysis
         st.markdown("#### Extreme Values Analysis")
@@ -1129,7 +1129,7 @@ elif page == "🤖 GLM vs XGBoost":
                      "⚠️ Slower", "✅ Auto-captured", "⚠️ Can overfit",
                      "⚠️ More complex", "⚠️ Needs explainability layer"]
     })
-    st.dataframe(pros_cons, width='stretch', hide_index=True)
+    st.dataframe(pros_cons, use_container_width=True, hide_index=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

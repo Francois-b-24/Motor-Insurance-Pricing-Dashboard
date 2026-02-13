@@ -166,46 +166,74 @@ def compute_glm_diagnostics(glm_results, y_true, y_pred, weights=None):
     diagnostics["bic"] = glm_results.bic
     
     # Pseudo R-squared
-    diagnostics["pseudo_r2"] = 1 - (glm_results.deviance / glm_results.null_deviance)
+    if glm_results.null_deviance > 0:
+        diagnostics["pseudo_r2"] = 1 - (glm_results.deviance / glm_results.null_deviance)
+    else:
+        diagnostics["pseudo_r2"] = 0.0
     
     # Pearson Chi-square test
     # Avoid division by zero
     y_pred_safe = np.clip(y_pred, 1e-10, None)
     pearson_residuals = (y_true - y_pred) / np.sqrt(y_pred_safe)
+    # Handle NaN/Inf values
+    pearson_residuals = np.nan_to_num(pearson_residuals, nan=0.0, posinf=0.0, neginf=0.0)
     pearson_chi2 = np.sum(weights * pearson_residuals**2)
     diagnostics["pearson_chi2"] = pearson_chi2
-    diagnostics["pearson_chi2_pvalue"] = 1 - stats.chi2.cdf(
-        pearson_chi2, glm_results.df_resid
-    )
+    if glm_results.df_resid > 0:
+        diagnostics["pearson_chi2_pvalue"] = max(0, min(1, 1 - stats.chi2.cdf(
+            pearson_chi2, glm_results.df_resid
+        )))
+    else:
+        diagnostics["pearson_chi2_pvalue"] = 1.0
     
     # Overdispersion test (for Poisson)
     if hasattr(glm_results, 'family') and 'Poisson' in str(glm_results.family):
         # Dean's test for overdispersion
-        dispersion_ratio = pearson_chi2 / glm_results.df_resid
-        diagnostics["dispersion_ratio"] = dispersion_ratio
-        diagnostics["overdispersed"] = dispersion_ratio > 1.5
+        if glm_results.df_resid > 0:
+            dispersion_ratio = pearson_chi2 / glm_results.df_resid
+            diagnostics["dispersion_ratio"] = dispersion_ratio
+            diagnostics["overdispersed"] = dispersion_ratio > 1.5
+        else:
+            diagnostics["dispersion_ratio"] = 1.0
+            diagnostics["overdispersed"] = False
         
         # Dean's test statistic
-        dean_stat = np.sum(weights * ((y_true - y_pred)**2 - y_true)) / np.sqrt(
-            2 * np.sum(weights * y_pred_safe**2)
-        )
-        diagnostics["dean_statistic"] = dean_stat
-        diagnostics["dean_pvalue"] = 2 * (1 - stats.norm.cdf(abs(dean_stat)))
+        dean_denom = np.sqrt(2 * np.sum(weights * y_pred_safe**2))
+        if dean_denom > 0:
+            dean_stat = np.sum(weights * ((y_true - y_pred)**2 - y_true)) / dean_denom
+            diagnostics["dean_statistic"] = dean_stat
+            diagnostics["dean_pvalue"] = max(0, min(1, 2 * (1 - stats.norm.cdf(abs(dean_stat)))))
+        else:
+            diagnostics["dean_statistic"] = 0.0
+            diagnostics["dean_pvalue"] = 1.0
     
     # Likelihood Ratio Test (model vs null)
     lr_stat = glm_results.null_deviance - glm_results.deviance
     diagnostics["lr_statistic"] = lr_stat
-    diagnostics["lr_pvalue"] = 1 - stats.chi2.cdf(
-        lr_stat, glm_results.df_model
-    )
-    
-    # Residuals (only store if needed, can be large arrays)
-    # Store summary stats instead of full arrays to avoid memory issues
-    diagnostics["pearson_residuals"] = pearson_residuals
-    if hasattr(glm_results, 'resid_deviance'):
-        diagnostics["deviance_residuals"] = glm_results.resid_deviance
+    if glm_results.df_model > 0:
+        diagnostics["lr_pvalue"] = max(0, min(1, 1 - stats.chi2.cdf(
+            lr_stat, glm_results.df_model
+        )))
     else:
-        # Fallback: compute deviance residuals manually if not available
+        diagnostics["lr_pvalue"] = 1.0
+    
+    # Residuals - only store limited sample to avoid memory issues
+    # Store only first 10000 values for visualization
+    max_residuals = 10000
+    if len(pearson_residuals) > max_residuals:
+        diagnostics["pearson_residuals"] = pearson_residuals[:max_residuals]
+    else:
+        diagnostics["pearson_residuals"] = pearson_residuals
+    
+    if hasattr(glm_results, 'resid_deviance'):
+        dev_res = glm_results.resid_deviance
+        # Handle NaN/Inf
+        dev_res = np.nan_to_num(dev_res, nan=0.0, posinf=0.0, neginf=0.0)
+        if len(dev_res) > max_residuals:
+            diagnostics["deviance_residuals"] = dev_res[:max_residuals]
+        else:
+            diagnostics["deviance_residuals"] = dev_res
+    else:
         diagnostics["deviance_residuals"] = np.array([])
     
     return diagnostics
@@ -341,10 +369,17 @@ def run_models(X, y, w, claim_count, df_model=None):
     xgb_lift = compute_lift_curve(y_test, xgb_pred_test, w_test)
     
     # GLM Diagnostics
-    glm_diagnostics = compute_glm_diagnostics(glm_freq_results, y_train, glm_freq_pred_train, w_train)
+    try:
+        glm_diagnostics = compute_glm_diagnostics(glm_freq_results, y_train, glm_freq_pred_train, w_train)
+    except Exception as e:
+        # If diagnostics fail, return empty dict to avoid breaking the app
+        glm_diagnostics = {}
     
     # Severity analysis
-    severity_analysis = compute_severity_analysis(sev_train, cc_train) if len(sev_train) > 0 else {}
+    try:
+        severity_analysis = compute_severity_analysis(sev_train, cc_train) if len(sev_train) > 0 else {}
+    except Exception as e:
+        severity_analysis = {}
 
     return {
         # Frequency models
