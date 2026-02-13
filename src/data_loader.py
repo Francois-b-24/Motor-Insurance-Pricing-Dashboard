@@ -135,9 +135,10 @@ def load_data() -> pd.DataFrame:
     return df
 
 
-def get_modeling_data(df: pd.DataFrame):
+def get_modeling_data(df: pd.DataFrame, max_rows=100_000):
     """
     Prepare X, y, weights for frequency modeling.
+    Sub-samples to max_rows (stratified on ClaimNb) to limit memory usage.
     Returns X (DataFrame), y (Series), w (Series/array), claim_count, df_model.
     """
     features = ["VehPower", "VehAge", "DrivAge", "BonusMalus", "LogDensity",
@@ -148,6 +149,22 @@ def get_modeling_data(df: pd.DataFrame):
                                "TotalClaimAmount", "Severity", "PurePremium"] + \
                   [c for c in bin_cols if c in df.columns]
     df_model = df[cols_needed].dropna(subset=features).copy()
+
+    # Sub-sample if dataset is too large (memory constraint on Streamlit Cloud)
+    if len(df_model) > max_rows:
+        has_claim = df_model["ClaimNb"] > 0
+        n_claims = has_claim.sum()
+        n_no_claims = (~has_claim).sum()
+        # Keep all claims, sample from non-claims
+        n_sample_no_claims = max_rows - n_claims
+        if n_sample_no_claims > 0 and n_sample_no_claims < n_no_claims:
+            idx_claims = df_model[has_claim].index
+            idx_no_claims = df_model[~has_claim].sample(
+                n=n_sample_no_claims, random_state=42
+            ).index
+            df_model = df_model.loc[idx_claims.union(idx_no_claims)].copy()
+        else:
+            df_model = df_model.sample(n=max_rows, random_state=42).copy()
 
     # One-hot encode categoricals
     cat_cols = ["Area", "VehGas", "VehBrand", "Region"]
