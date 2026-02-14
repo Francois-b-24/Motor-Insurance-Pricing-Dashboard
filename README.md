@@ -70,8 +70,6 @@ pricing/
 │   ├── __init__.py
 │   ├── data_loader.py     # Data loading and preprocessing
 │   └── models.py          # GLM and XGBoost models
-├── docs/
-│   └── guide-technique-dashboard.pdf
 ├── requirements.txt       # Python dependencies
 ├── README.md
 └── .gitignore
