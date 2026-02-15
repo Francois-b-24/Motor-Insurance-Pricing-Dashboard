@@ -445,14 +445,11 @@ def render(df, X, y, w, claim_count, df_model, results):
     #### Strategic Recommendations
     1. **Rate Refresh:** Implement annual rate review cycle — current GLM coefficients should be
        re-estimated with the most recent 24 months of experience data
-    2. **UBI Score Integration:** For Stellantis vehicles equipped with connected car technology,
-       develop a Usage-Based Insurance score as a supplementary rating factor
-    3. **Elasticity-Based Optimization:** Apply segment-level elasticity to optimize the rate
+    2. **Elasticity-Based Optimization:** Apply segment-level elasticity to optimize the rate
        structure — reduce premiums where demand is elastic, increase where captive
-    4. **Multi-Market Harmonization:** Adapt this pricing framework for deployment across
+    3. **Multi-Market Harmonization:** Adapt this pricing framework for deployment across
        European markets, adjusting for local regulation, competition, and loss patterns
-    5. **Product Bundling:** Leverage Stellantis ecosystem to offer bundled pricing
-       (Car Insurance + Breakdown + GAP) with cross-sell elasticity modeling
+   
 
     #### Model Governance
     - Quarterly model performance review (A/E, PSI, Gini stability)
@@ -460,3 +457,6 @@ def render(df, X, y, w, claim_count, df_model, results):
     - Document all pricing decisions for regulatory compliance (Solvency II)
     - Maintain audit trail for rate changes and their justification
     """)
+
+
+   

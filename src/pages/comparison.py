@@ -92,7 +92,7 @@ def render(df, X, y, w, claim_count, df_model, results):
         title_text="Ordered Lift: Do models correctly rank risk?",
     )
     fig_lift.update_xaxes(tickangle=-45)
-    st.plotly_chart(fig_lift, width='stretch')
+    st.plotly_chart(fig_lift, use_container_width=True)
 
     # --- Double Lift ---
     section_header("⚖️ Double Lift — Where Do Models Disagree?")
@@ -139,7 +139,7 @@ def render(df, X, y, w, claim_count, df_model, results):
         yaxis_title="Average Frequency",
         template="plotly_white", height=400,
     )
-    st.plotly_chart(fig_dl, width='stretch')
+    st.plotly_chart(fig_dl, use_container_width=True)
 
     # --- SHAP ---
     section_header("🔍 SHAP Interpretability — XGBoost")
@@ -171,7 +171,7 @@ def render(df, X, y, w, claim_count, df_model, results):
             title="Top 15 Features by Mean |SHAP| Value",
         )
         fig_shap.update_layout(template="plotly_white", height=500, showlegend=False)
-        st.plotly_chart(fig_shap, width='stretch')
+        st.plotly_chart(fig_shap, use_container_width=True)
 
         if "BonusMalus" in X_sample.columns:
             st.markdown("#### SHAP Dependence — Bonus-Malus")
@@ -184,7 +184,7 @@ def render(df, X, y, w, claim_count, df_model, results):
                 color_continuous_scale="Viridis", opacity=0.5,
             )
             fig_dep.update_layout(template="plotly_white", height=400)
-            st.plotly_chart(fig_dep, width='stretch')
+            st.plotly_chart(fig_dep, use_container_width=True)
 
     except Exception as e:
         st.warning(f"SHAP analysis requires the `shap` library. Error: {e}")
