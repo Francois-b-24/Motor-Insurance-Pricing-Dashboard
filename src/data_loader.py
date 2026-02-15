@@ -171,7 +171,7 @@ def get_modeling_data(df: pd.DataFrame, max_rows=100_000):
     df_encoded = pd.get_dummies(df_model[features], columns=cat_cols, drop_first=True,
                                  dtype=float)
 
-    X = df_encoded
+    X = df_encoded.apply(pd.to_numeric, errors="coerce").fillna(0).astype(float)
     y = df_model["Frequency"].values
     w = df_model["Exposure"].values
     claim_count = df_model["ClaimNb"].values
