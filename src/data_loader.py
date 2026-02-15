@@ -32,6 +32,9 @@ def load_data() -> pd.DataFrame:
     try:
         sev = fetch_openml(data_id=41215, as_frame=True, parser="auto")
         df_sev = sev.frame.copy()
+        for col in df_sev.columns:
+            if df_sev[col].dtype == object:
+                df_sev[col] = df_sev[col].astype(str).str.strip("[]'\" ")
         df_sev["IDpol"] = pd.to_numeric(df_sev["IDpol"], errors="coerce")
         df_sev["ClaimAmount"] = pd.to_numeric(df_sev["ClaimAmount"], errors="coerce")
 
@@ -49,6 +52,12 @@ def load_data() -> pd.DataFrame:
     # -------------------------------------------------------------------
     # Basic type conversions
     # -------------------------------------------------------------------
+    # OpenML/ARFF can return values wrapped in brackets (e.g. '[6.352192E-1]')
+    # Strip brackets from all object columns before numeric conversion
+    for col in df.columns:
+        if df[col].dtype == object:
+            df[col] = df[col].astype(str).str.strip("[]'\" ")
+
     numeric_cols = ["IDpol", "Exposure", "ClaimNb", "VehPower", "VehAge",
                     "DrivAge", "BonusMalus", "Density"]
     for col in numeric_cols:
